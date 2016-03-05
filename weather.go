@@ -1,11 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -120,31 +121,26 @@ func kwGetRaining(in *dt.Msg, _ int) (resp string) {
 }
 
 func getWeather(city *dt.City) string {
-	l.Debug("getting weather")
+	l.Debug("getting weather for city", city.Name)
 	req := weatherJSON{}
-	resp, err := http.Get("https://www.itsabot.org/api/weather.json?city=" +
-		city.Name)
+	n := url.QueryEscape(city.Name)
+	resp, err := http.Get("https://www.itsabot.org/api/weather.json?city=" + n)
 	if err != nil {
 		return e(err)
 	}
-	contents, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
+	l.Debug("decoding resp")
+	if err = json.NewDecoder(resp.Body).Decode(&req); err != nil {
 		return e(err)
 	}
-	l.Debug(string(contents))
-	/*
-		if err = json.NewDecoder(resp.Body).Decode(&req); err != nil {
-			return e(err)
-		}
-	*/
+	l.Debug("closing resp.Body")
 	if err = resp.Body.Close(); err != nil {
 		return e(err)
 	}
 	l.Debug("got weather")
 	var ret string
 	if len(req.Description) == 0 {
-		ret = fmt.Sprintf("It's %.0f in %s right now.", city.Name,
-			req.Temp)
+		ret = fmt.Sprintf("It's %.f in %s right now.", req.Temp,
+			city.Name)
 	} else {
 		if len(strings.Fields(req.Description[0])) > 1 {
 			// 2 word description, e.g. "moderate rain"
