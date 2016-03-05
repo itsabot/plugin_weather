@@ -174,6 +174,7 @@ func buildStateMachine(in *dt.Msg) *dt.StateMachine {
 				return "I'll look up the weather for you. What city are you in right now?"
 			},
 			OnInput: func(in *dt.Msg) {
+				l.Debug(in.Sentence)
 				cities, err := language.ExtractCities(db, in)
 				if err != nil {
 					l.Debug(err)
