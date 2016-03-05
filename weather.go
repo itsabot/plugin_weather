@@ -90,13 +90,26 @@ func (t *Weather) FollowUp(in *dt.Msg, resp *string) error {
 }
 
 func kwGetTemp(in *dt.Msg, _ int) (resp string) {
-	cities, err := language.ExtractCities(db, in)
-	if err != nil {
-		l.Debug("getting temp")
-		return e(err)
-	}
-	if len(cities) == 0 {
-		return ""
+	sm := buildStateMachine(in)
+	var cities []dt.City
+	var err error
+	if sm.HasMemory(in, "city") {
+		city := dt.City{}
+		mem := sm.GetMemory(in, "city")
+		if err = json.Unmarshal(mem.Val(), &city); err != nil {
+			l.Debug("retrieving city from memory")
+			return e(err)
+		}
+		cities = append(cities, city)
+	} else {
+		cities, err = language.ExtractCities(db, in)
+		if err != nil {
+			l.Debug("getting temp")
+			return e(err)
+		}
+		if len(cities) == 0 {
+			return ""
+		}
 	}
 	return getWeather(&cities[0])
 }
@@ -158,7 +171,7 @@ func buildStateMachine() *dt.StateMachine {
 	sm.SetStates([]dt.State{
 		{
 			OnEntry: func(in *dt.Msg) string {
-				return "I'll find out for you. What city are you in right now?"
+				return "I'll look up the weather for you. What city are you in right now?"
 			},
 			OnInput: func(in *dt.Msg) {
 				cities, err := language.ExtractCities(db, in)
@@ -167,9 +180,10 @@ func buildStateMachine() *dt.StateMachine {
 					return
 				}
 				if len(cities) == 0 {
-					l.Debug("found 0 cities")
+					l.Debug("extracted 0 cities")
 					return
 				}
+				l.Debug("extracted", cities[0].Name)
 				sm.SetMemory(in, "city", cities[0])
 			},
 			Complete: func(in *dt.Msg) (bool, string) {
