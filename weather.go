@@ -90,13 +90,13 @@ func (t *Weather) FollowUp(in *dt.Msg, resp *string) error {
 }
 
 func kwGetTemp(in *dt.Msg, _ int) (resp string) {
-	sm := buildStateMachine(in)
+	sm := buildStateMachine()
 	var cities []dt.City
 	var err error
 	if sm.HasMemory(in, "city") {
 		city := dt.City{}
 		mem := sm.GetMemory(in, "city")
-		if err = json.Unmarshal(mem.Val(), &city); err != nil {
+		if err = json.Unmarshal(mem.Val, &city); err != nil {
 			l.Debug("retrieving city from memory")
 			return e(err)
 		}
