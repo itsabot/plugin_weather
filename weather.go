@@ -197,6 +197,7 @@ func buildStateMachine() *dt.StateMachine {
 			OnInput: func(in *dt.Msg) {
 			},
 			Complete: func(in *dt.Msg) (bool, string) {
+				l.Debug("completed state machine")
 				return true, ""
 			},
 		},
