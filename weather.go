@@ -142,15 +142,8 @@ func getWeather(city *dt.City) string {
 		ret = fmt.Sprintf("It's %.f in %s right now.", req.Temp,
 			city.Name)
 	} else {
-		if len(strings.Fields(req.Description[0])) > 1 {
-			// 2 word description, e.g. "moderate rain"
-			ret = fmt.Sprintf("It's %.0f with %s in %s.", req.Temp,
-				req.Description[0], city.Name)
-		} else {
-			// 1 word description, e.g. "sunny"
-			ret = fmt.Sprintf("It's %.0f and %s in %s.", req.Temp,
-				req.Description[0], city.Name)
-		}
+		ret = fmt.Sprintf("It's %.0f with %s in %s.", req.Temp,
+			req.Description[0], city.Name)
 	}
 	return ret
 }
