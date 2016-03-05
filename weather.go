@@ -94,6 +94,7 @@ func kwGetTemp(in *dt.Msg, _ int) (resp string) {
 	var cities []dt.City
 	var err error
 	if sm.HasMemory(in, "city") {
+		l.Debug("city in memory")
 		city := dt.City{}
 		mem := sm.GetMemory(in, "city")
 		if err = json.Unmarshal(mem.Val, &city); err != nil {
@@ -102,6 +103,7 @@ func kwGetTemp(in *dt.Msg, _ int) (resp string) {
 		}
 		cities = append(cities, city)
 	} else {
+		l.Debug("no city in memory")
 		cities, err = language.ExtractCities(db, in)
 		if err != nil {
 			l.Debug("getting temp")
