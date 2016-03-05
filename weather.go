@@ -1,9 +1,9 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"strings"
@@ -36,6 +36,7 @@ func main() {
 		"Port used to communicate with Abot.")
 	flag.Parse()
 	l = log.New(pluginName)
+	l.SetDebug(true)
 	rand.Seed(time.Now().UnixNano())
 	trigger := &nlp.StructuredInput{
 		Commands: []string{"what", "show", "tell", "is"},
@@ -119,17 +120,27 @@ func kwGetRaining(in *dt.Msg, _ int) (resp string) {
 }
 
 func getWeather(city *dt.City) string {
+	l.Debug("getting weather")
 	req := weatherJSON{}
-	resp, err := http.Get("https://www.itsabot.org/api/weather.json?city=")
+	resp, err := http.Get("https://www.itsabot.org/api/weather.json?city=" +
+		city.Name)
 	if err != nil {
 		return e(err)
 	}
-	if err = json.NewDecoder(resp.Body).Decode(&req); err != nil {
+	contents, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
 		return e(err)
 	}
+	l.Debug(string(contents))
+	/*
+		if err = json.NewDecoder(resp.Body).Decode(&req); err != nil {
+			return e(err)
+		}
+	*/
 	if err = resp.Body.Close(); err != nil {
 		return e(err)
 	}
+	l.Debug("got weather")
 	var ret string
 	if len(req.Description) == 0 {
 		ret = fmt.Sprintf("It's %.0f in %s right now.", city.Name,
