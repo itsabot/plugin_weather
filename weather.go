@@ -83,14 +83,14 @@ func (t *Weather) Run(in *dt.Msg, resp *string) error {
 func (t *Weather) FollowUp(in *dt.Msg, resp *string) error {
 	*resp = p.Vocab.HandleKeywords(in)
 	if len(*resp) == 0 {
-		sm := buildStateMachine()
+		sm := buildStateMachine(in)
 		*resp = sm.Next(in)
 	}
 	return nil
 }
 
 func kwGetTemp(in *dt.Msg, _ int) (resp string) {
-	sm := buildStateMachine()
+	sm := buildStateMachine(in)
 	var cities []dt.City
 	var err error
 	if sm.HasMemory(in, "city") {
@@ -161,7 +161,7 @@ func getWeather(city *dt.City) string {
 	return ret
 }
 
-func buildStateMachine() *dt.StateMachine {
+func buildStateMachine(in *dt.Msg) *dt.StateMachine {
 	sm := dt.NewStateMachine(pluginName)
 	sm.SetDBConn(db)
 	sm.SetLogger(l)
@@ -202,6 +202,7 @@ func buildStateMachine() *dt.StateMachine {
 			},
 		},
 	})
+	sm.LoadState(in)
 	return sm
 }
 
