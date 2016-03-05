@@ -90,6 +90,7 @@ func (t *Weather) FollowUp(in *dt.Msg, resp *string) error {
 func kwGetTemp(in *dt.Msg, _ int) (resp string) {
 	cities, err := language.ExtractCities(db, in)
 	if err != nil {
+		l.Debug("getting temp")
 		return e(err)
 	}
 	if len(cities) == 0 {
@@ -101,6 +102,7 @@ func kwGetTemp(in *dt.Msg, _ int) (resp string) {
 func kwGetRaining(in *dt.Msg, _ int) (resp string) {
 	cities, err := language.ExtractCities(db, in)
 	if err != nil {
+		l.Debug("getting rain")
 		return e(err)
 	}
 	if len(cities) == 0 {
@@ -161,11 +163,11 @@ func buildStateMachine() *dt.StateMachine {
 			OnInput: func(in *dt.Msg) {
 				cities, err := language.ExtractCities(db, in)
 				if err != nil {
-					log.Debug(err)
+					l.Debug(err)
 					return
 				}
 				if len(cities) == 0 {
-					log.Debug("found 0 cities")
+					l.Debug("found 0 cities")
 					return
 				}
 				sm.SetMemory(in, "city", cities[0])
@@ -189,6 +191,6 @@ func buildStateMachine() *dt.StateMachine {
 }
 
 func e(err error) string {
-	log.Debug(err)
+	l.Debug(err)
 	return "Something went wrong, but I'll try to get that fixed right away."
 }
