@@ -115,14 +115,13 @@ func getCity(in *dt.Msg) (*dt.City, error) {
 		l.Debug("couldn't extract cities")
 		return nil, err
 	}
-	var city *dt.City
+	city := &dt.City{}
 	sm := buildStateMachine(in)
 	if len(cities) >= 1 {
 		city = &cities[0]
 	} else if sm.HasMemory(in, "city") {
 		mem := sm.GetMemory(in, "city")
 		l.Debug(mem)
-		l.Debugf("%q", string(mem.Val))
 		if err := json.Unmarshal(mem.Val, city); err != nil {
 			l.Debug("couldn't unmarshal mem into city", err)
 			return nil, err
