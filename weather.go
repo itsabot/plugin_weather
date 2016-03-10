@@ -106,7 +106,7 @@ func kwGetRaining(in *dt.Msg, _ int) (resp string) {
 				city.Name)
 		}
 	}
-	return fmt.Sprintf("It's not raining in %s right now", city.Name)
+	return fmt.Sprintf("It's not raining in %s right now.", city.Name)
 }
 
 func getCity(in *dt.Msg) (*dt.City, error) {
