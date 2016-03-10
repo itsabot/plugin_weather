@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"math/rand"
@@ -82,57 +83,53 @@ func (t *Weather) Run(in *dt.Msg, resp *string) error {
 
 func (t *Weather) FollowUp(in *dt.Msg, resp *string) error {
 	*resp = p.Vocab.HandleKeywords(in)
-	if len(*resp) == 0 {
-		sm := buildStateMachine(in)
-		*resp = sm.Next(in)
-	}
 	return nil
 }
 
 func kwGetTemp(in *dt.Msg, _ int) (resp string) {
-	sm := buildStateMachine(in)
-	var cities []dt.City
-	var err error
-	if sm.HasMemory(in, "city") {
-		l.Debug("city in memory")
-		city := dt.City{}
-		mem := sm.GetMemory(in, "city")
-		if err = json.Unmarshal(mem.Val, &city); err != nil {
-			l.Debug("retrieving city from memory")
-			return e(err)
-		}
-		cities = append(cities, city)
-	} else {
-		l.Debug("no city in memory")
-		cities, err = language.ExtractCities(db, in)
-		if err != nil {
-			l.Debug("getting temp")
-			return e(err)
-		}
-		if len(cities) == 0 {
-			return ""
-		}
+	city, err := getCity(in)
+	if err != nil {
+		return e(err)
 	}
-	return getWeather(&cities[0])
+	return getWeather(city)
 }
 
 func kwGetRaining(in *dt.Msg, _ int) (resp string) {
-	cities, err := language.ExtractCities(db, in)
+	city, err := getCity(in)
 	if err != nil {
-		l.Debug("getting rain")
 		return e(err)
 	}
-	if len(cities) == 0 {
-		return ""
-	}
-	resp = getWeather(&cities[0])
+	resp = getWeather(city)
 	for _, w := range strings.Fields(resp) {
 		if w == "rain" {
 			return fmt.Sprintf("It's raining in %s right now.",
-				cities[0].Name)
+				city.Name)
 		}
 	}
-	return fmt.Sprintf("It's not raining in %s right now", cities[0].Name)
+	return fmt.Sprintf("It's not raining in %s right now", city.Name)
+}
+
+func getCity(in *dt.Msg) (*dt.City, error) {
+	cities, err := language.ExtractCities(db, in)
+	if err != nil {
+		l.Debug("couldn't extract cities")
+		return nil, err
+	}
+	var city *dt.City
+	sm := buildStateMachine(in)
+	if len(cities) >= 1 {
+		city = &cities[0]
+	} else if sm.HasMemory(in, "city") {
+		mem := sm.GetMemory(in, "city")
+		if err := json.Unmarshal(mem.Val, city); err != nil {
+			l.Debug("couldn't unmarshal mem into city", err)
+			return nil, err
+		}
+	}
+	if city == nil {
+		return nil, errors.New("no cities found")
+	}
+	return city, nil
 }
 
 func getWeather(city *dt.City) string {
@@ -167,44 +164,7 @@ func buildStateMachine(in *dt.Msg) *dt.StateMachine {
 	sm := dt.NewStateMachine(pluginName)
 	sm.SetDBConn(db)
 	sm.SetLogger(l)
-	sm.SetOnReset(func(in *dt.Msg) {
-		sm.SetMemory(in, "city", nil)
-	})
-	sm.SetStates([]dt.State{
-		{
-			OnEntry: func(in *dt.Msg) string {
-				return "I'll look up the weather for you. What city are you in right now?"
-			},
-			OnInput: func(in *dt.Msg) {
-				l.Debug(in.Sentence)
-				cities, err := language.ExtractCities(db, in)
-				if err != nil {
-					l.Debug(err)
-					return
-				}
-				if len(cities) == 0 {
-					l.Debug("extracted 0 cities")
-					return
-				}
-				l.Debug("extracted", cities[0].Name)
-				sm.SetMemory(in, "city", cities[0])
-			},
-			Complete: func(in *dt.Msg) (bool, string) {
-				return sm.HasMemory(in, "city"), ""
-			},
-		},
-		{
-			OnEntry: func(in *dt.Msg) string {
-				return kwGetTemp(in, 0)
-			},
-			OnInput: func(in *dt.Msg) {
-			},
-			Complete: func(in *dt.Msg) (bool, string) {
-				l.Debug("completed state machine")
-				return true, ""
-			},
-		},
-	})
+	sm.SetStates([]dt.State{})
 	sm.LoadState(in)
 	return sm
 }
