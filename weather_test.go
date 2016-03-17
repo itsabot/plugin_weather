@@ -21,13 +21,13 @@ var abot *core.Abot
 var phone string
 
 func TestMain(m *testing.M) {
-	phone = *flag.String("phone", "+13105555555", "phone number of test user")
-	flag.Parse()
 	if err := os.Setenv("ABOT_ENV", "test"); err != nil {
 		log.Fatal(err)
 	}
+	flag.StringVar(&phone, "phone", "+13105555555", "phone number of test user")
+	flag.Parse()
 	var err error
-	e, abot, rpcAddr, err = core.NewServer()
+	e, abot, err = core.NewServer()
 	if err != nil {
 		log.Fatal("failed to start Abot server", err)
 	}

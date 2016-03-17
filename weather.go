@@ -30,28 +30,25 @@ type weatherJSON struct {
 var p *plugin.Plugin
 var db *sqlx.DB
 var l *log.Logger
-var rpcAddr string
-
-const pluginName = "weather"
 
 func main() {
 	var addr string
-	flag.StringVar(&addr, "coreaddr", "", "Port to communicate with Abot.")
+	flag.StringVar(&addr, "coreaddr", os.Getenv("CORE_ADDR"), "Port to communicate with Abot.")
 	flag.Parse()
-	l = log.New(pluginName)
-	l.SetDebug(true)
+	var err error
 	rand.Seed(time.Now().UnixNano())
 	trigger := &nlp.StructuredInput{
 		Commands: []string{"what", "show", "tell", "is"},
 		Objects: []string{"weather", "temperature", "temp", "outside",
 			"raining"},
 	}
-	var err error
-	db, err = plugin.ConnectDB()
+	p, err = plugin.New(addr, trigger)
 	if err != nil {
 		l.Fatal(err)
 	}
-	p, err = plugin.New(pluginName, addr, trigger)
+	l = log.New(p.Config.Name)
+	l.SetDebug(true)
+	db, err = plugin.ConnectDB()
 	if err != nil {
 		l.Fatal(err)
 	}
@@ -72,9 +69,6 @@ func main() {
 			},
 		},
 	)
-	if os.Getenv("ABOT_ENV") == "test" {
-		p.Config.CoreRPCAddr = rpcAddr
-	}
 	weather := new(Weather)
 	if err = p.Register(weather); err != nil {
 		l.Fatal(err)
@@ -166,7 +160,7 @@ func getWeather(city *dt.City) string {
 }
 
 func buildStateMachine(in *dt.Msg) *dt.StateMachine {
-	sm := dt.NewStateMachine(pluginName)
+	sm := dt.NewStateMachine(p.Config.Name)
 	sm.SetDBConn(db)
 	sm.SetLogger(l)
 	sm.SetStates([]dt.State{})
