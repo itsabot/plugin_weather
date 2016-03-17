@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -29,13 +30,13 @@ type weatherJSON struct {
 var p *plugin.Plugin
 var db *sqlx.DB
 var l *log.Logger
+var rpcAddr string
 
 const pluginName = "weather"
 
 func main() {
-	var coreaddr string
-	flag.StringVar(&coreaddr, "coreaddr", "",
-		"Port used to communicate with Abot.")
+	var addr string
+	flag.StringVar(&addr, "coreaddr", "", "Port to communicate with Abot.")
 	flag.Parse()
 	l = log.New(pluginName)
 	l.SetDebug(true)
@@ -50,7 +51,7 @@ func main() {
 	if err != nil {
 		l.Fatal(err)
 	}
-	p, err = plugin.New(pluginName, coreaddr, trigger)
+	p, err = plugin.New(pluginName, addr, trigger)
 	if err != nil {
 		l.Fatal(err)
 	}
@@ -71,6 +72,9 @@ func main() {
 			},
 		},
 	)
+	if os.Getenv("ABOT_ENV") == "test" {
+		p.Config.CoreRPCAddr = rpcAddr
+	}
 	weather := new(Weather)
 	if err = p.Register(weather); err != nil {
 		l.Fatal(err)
@@ -89,7 +93,7 @@ func (t *Weather) FollowUp(in *dt.Msg, resp *string) error {
 func kwGetTemp(in *dt.Msg, _ int) (resp string) {
 	city, err := getCity(in)
 	if err != nil {
-		return e(err)
+		return er(err)
 	}
 	return getWeather(city)
 }
@@ -97,7 +101,7 @@ func kwGetTemp(in *dt.Msg, _ int) (resp string) {
 func kwGetRaining(in *dt.Msg, _ int) (resp string) {
 	city, err := getCity(in)
 	if err != nil {
-		return e(err)
+		return er(err)
 	}
 	resp = getWeather(city)
 	for _, w := range strings.Fields(resp) {
@@ -139,15 +143,15 @@ func getWeather(city *dt.City) string {
 	n := url.QueryEscape(city.Name)
 	resp, err := http.Get("https://www.itsabot.org/api/weather.json?city=" + n)
 	if err != nil {
-		return e(err)
+		return er(err)
 	}
 	l.Debug("decoding resp")
 	if err = json.NewDecoder(resp.Body).Decode(&req); err != nil {
-		return e(err)
+		return er(err)
 	}
 	l.Debug("closing resp.Body")
 	if err = resp.Body.Close(); err != nil {
-		return e(err)
+		return er(err)
 	}
 	l.Debug("got weather")
 	var ret string
@@ -170,7 +174,7 @@ func buildStateMachine(in *dt.Msg) *dt.StateMachine {
 	return sm
 }
 
-func e(err error) string {
+func er(err error) string {
 	l.Debug(err)
 	return "Something went wrong, but I'll try to get that fixed right away."
 }
