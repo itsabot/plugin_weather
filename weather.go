@@ -44,7 +44,7 @@ func main() {
 	}
 	p, err = plugin.New(addr, trigger)
 	if err != nil {
-		l.Fatal(err)
+		log.Fatal(err)
 	}
 	l = log.New(p.Config.Name)
 	l.SetDebug(true)
@@ -84,7 +84,7 @@ func (t *Weather) FollowUp(in *dt.Msg, resp *string) error {
 	return nil
 }
 
-func kwGetTemp(in *dt.Msg, _ int) (resp string) {
+func kwGetTemp(in *dt.Msg) (resp string) {
 	city, err := getCity(in)
 	if err != nil {
 		return er(err)
@@ -92,7 +92,7 @@ func kwGetTemp(in *dt.Msg, _ int) (resp string) {
 	return getWeather(city)
 }
 
-func kwGetRaining(in *dt.Msg, _ int) (resp string) {
+func kwGetRaining(in *dt.Msg) (resp string) {
 	city, err := getCity(in)
 	if err != nil {
 		return er(err)
