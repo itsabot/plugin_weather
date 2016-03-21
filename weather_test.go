@@ -4,18 +4,19 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"os"
 	"strings"
 	"testing"
-	"time"
+
+	"github.com/itsabot/abot/core"
+	"github.com/labstack/echo"
 )
 
-//var e *echo.Echo
-//var abot *core.Abot
+var e *echo.Echo
 var phone string
 
 func TestMain(m *testing.M) {
@@ -24,16 +25,11 @@ func TestMain(m *testing.M) {
 	}
 	flag.StringVar(&phone, "phone", "+13105555555", "phone number of test user")
 	flag.Parse()
-	/*
-		var err error
-		e, abot, err = core.NewServer()
-		if err != nil {
-			log.Fatal("failed to start Abot server", err)
-		}
-		go func() {
-			main()
-		}()
-	*/
+	var err error
+	e, err = core.NewServer()
+	if err != nil {
+		log.Fatal("failed to start Abot server", err)
+	}
 	os.Exit(m.Run())
 }
 
@@ -70,18 +66,7 @@ func request(method, path string, data []byte) (int, string) {
 	if err != nil {
 		return 0, "err completing request: " + err.Error()
 	}
-	client := http.Client{
-		Timeout: time.Duration(3 * time.Second),
-	}
-	resp, err := client.Do(r)
-	if err != nil {
-		return 0, "err completing request: " + err.Error()
-	}
-	// w := httptest.NewRecorder()
-	// e.ServeHTTP(w, r)
-	b, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return 0, "err completing request: " + err.Error()
-	}
-	return resp.StatusCode, string(b)
+	w := httptest.NewRecorder()
+	e.ServeHTTP(w, r)
+	return w.Code, string(w.Body.Bytes())
 }
