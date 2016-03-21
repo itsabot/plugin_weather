@@ -1,56 +1,42 @@
-package main
+package weather
 
 import (
 	"encoding/json"
 	"errors"
-	"flag"
 	"fmt"
+	"log"
 	"math/rand"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 	"time"
 
 	"github.com/itsabot/abot/shared/datatypes"
 	"github.com/itsabot/abot/shared/language"
-	"github.com/itsabot/abot/shared/log"
 	"github.com/itsabot/abot/shared/nlp"
 	"github.com/itsabot/abot/shared/plugin"
-	"github.com/jmoiron/sqlx"
 )
 
-type Weather string
 type weatherJSON struct {
 	Description []string
 	Temp        float64
 	Humidity    int
 }
 
-var p *plugin.Plugin
-var db *sqlx.DB
-var l *log.Logger
+var p *dt.Plugin
 
-func main() {
-	var addr string
-	flag.StringVar(&addr, "coreaddr", os.Getenv("CORE_ADDR"), "Port to communicate with Abot.")
-	flag.Parse()
-	var err error
+func init() {
 	rand.Seed(time.Now().UnixNano())
 	trigger := &nlp.StructuredInput{
 		Commands: []string{"what", "show", "tell", "is"},
 		Objects: []string{"weather", "temperature", "temp", "outside",
 			"raining"},
 	}
-	p, err = plugin.New(addr, trigger)
+	fns := &dt.PluginFns{Run: Run, FollowUp: FollowUp}
+	var err error
+	p, err = plugin.New("github.com/itsabot/plugin_weather", trigger, fns)
 	if err != nil {
 		log.Fatal(err)
-	}
-	l = log.New(p.Config.Name)
-	l.SetDebug(true)
-	db, err = plugin.ConnectDB()
-	if err != nil {
-		l.Fatal(err)
 	}
 	p.Vocab = dt.NewVocab(
 		dt.VocabHandler{
@@ -69,19 +55,14 @@ func main() {
 			},
 		},
 	)
-	weather := new(Weather)
-	if err = p.Register(weather); err != nil {
-		l.Fatal(err)
-	}
 }
 
-func (t *Weather) Run(in *dt.Msg, resp *string) error {
-	return t.FollowUp(in, resp)
+func Run(in *dt.Msg) (string, error) {
+	return FollowUp(in)
 }
 
-func (t *Weather) FollowUp(in *dt.Msg, resp *string) error {
-	*resp = p.Vocab.HandleKeywords(in)
-	return nil
+func FollowUp(in *dt.Msg) (string, error) {
+	return p.Vocab.HandleKeywords(in), nil
 }
 
 func kwGetTemp(in *dt.Msg) (resp string) {
@@ -108,9 +89,9 @@ func kwGetRaining(in *dt.Msg) (resp string) {
 }
 
 func getCity(in *dt.Msg) (*dt.City, error) {
-	cities, err := language.ExtractCities(db, in)
+	cities, err := language.ExtractCities(p.DB, in)
 	if err != nil {
-		l.Debug("couldn't extract cities")
+		p.Log.Debug("couldn't extract cities")
 		return nil, err
 	}
 	city := &dt.City{}
@@ -119,9 +100,9 @@ func getCity(in *dt.Msg) (*dt.City, error) {
 		city = &cities[0]
 	} else if sm.HasMemory(in, "city") {
 		mem := sm.GetMemory(in, "city")
-		l.Debug(mem)
+		p.Log.Debug(mem)
 		if err := json.Unmarshal(mem.Val, city); err != nil {
-			l.Debug("couldn't unmarshal mem into city", err)
+			p.Log.Debug("couldn't unmarshal mem into city", err)
 			return nil, err
 		}
 	}
@@ -132,22 +113,22 @@ func getCity(in *dt.Msg) (*dt.City, error) {
 }
 
 func getWeather(city *dt.City) string {
-	l.Debug("getting weather for city", city.Name)
+	p.Log.Debug("getting weather for city", city.Name)
 	req := weatherJSON{}
 	n := url.QueryEscape(city.Name)
 	resp, err := http.Get("https://www.itsabot.org/api/weather.json?city=" + n)
 	if err != nil {
 		return er(err)
 	}
-	l.Debug("decoding resp")
+	p.Log.Debug("decoding resp")
 	if err = json.NewDecoder(resp.Body).Decode(&req); err != nil {
 		return er(err)
 	}
-	l.Debug("closing resp.Body")
+	p.Log.Debug("closing resp.Body")
 	if err = resp.Body.Close(); err != nil {
 		return er(err)
 	}
-	l.Debug("got weather")
+	p.Log.Debug("got weather")
 	var ret string
 	if len(req.Description) == 0 {
 		ret = fmt.Sprintf("It's %.f in %s right now.", req.Temp,
@@ -160,15 +141,13 @@ func getWeather(city *dt.City) string {
 }
 
 func buildStateMachine(in *dt.Msg) *dt.StateMachine {
-	sm := dt.NewStateMachine(p.Config.Name)
-	sm.SetDBConn(db)
-	sm.SetLogger(l)
+	sm := dt.NewStateMachine(p)
 	sm.SetStates([]dt.State{})
 	sm.LoadState(in)
 	return sm
 }
 
 func er(err error) string {
-	l.Debug(err)
+	p.Log.Debug(err)
 	return "Something went wrong, but I'll try to get that fixed right away."
 }
