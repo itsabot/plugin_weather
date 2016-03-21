@@ -1,3 +1,4 @@
 {
-	"Name": "Weather"
+	"Name": "Weather",
+	"Icon": "assets/images/icon_weather.svg"
 }

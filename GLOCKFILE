@@ -1,9 +1,0 @@
-github.com/dchest/stemmer f1ab276e6cf5fad3f8db813f22e25b1939c8ef70
-github.com/itsabot/abot 723c79b668be51970bca94f5086b0a3c411ee950
-github.com/jmoiron/sqlx 398dd5876282499cdfd4cb8ea0f31a672abe9495
-github.com/labstack/echo 30ee5fbb95aa1fc1c09f101fc7f9a1022a78da38
-github.com/labstack/gommon bfff5bf04688a4048a5cb4dd3b3f0697caaad19c
-github.com/lib/pq 8ad2b298cadd691a77015666a5372eae5dbfac8f
-github.com/mattn/go-colorable 9cbef7c35391cca05f15f8181dc0b18bc9736dbb
-github.com/mattn/go-isatty 56b76bdf51f7708750eac80fa38b952bb9f32639
-golang.org/x/net 6acef71eb69611914f7a30939ea9f6e194c78172
