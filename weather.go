@@ -116,7 +116,7 @@ func getWeather(city *dt.City) string {
 	p.Log.Debug("getting weather for city", city.Name)
 	req := weatherJSON{}
 	n := url.QueryEscape(city.Name)
-	resp, err := http.Get("https://www.itsabot.org/api/weather.json?city=" + n)
+	resp, err := http.Get("https://www.itsabot.org/api/weather/" + n)
 	if err != nil {
 		return er(err)
 	}
