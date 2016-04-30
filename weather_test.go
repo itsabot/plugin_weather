@@ -13,10 +13,10 @@ import (
 	"testing"
 
 	"github.com/itsabot/abot/core"
-	"github.com/labstack/echo"
+	"github.com/julienschmidt/httprouter"
 )
 
-var e *echo.Echo
+var r *httprouter.Router
 var phone string
 
 func TestMain(m *testing.M) {
@@ -26,7 +26,7 @@ func TestMain(m *testing.M) {
 	flag.StringVar(&phone, "phone", "+13105555555", "phone number of test user")
 	flag.Parse()
 	var err error
-	e, err = core.NewServer()
+	r, err = core.NewServer()
 	if err != nil {
 		log.Fatal("failed to start Abot server", err)
 	}
@@ -36,7 +36,7 @@ func TestMain(m *testing.M) {
 func TestServer(t *testing.T) {
 	req := "what's the weather in LA?"
 	u := fmt.Sprintf("http://localhost:%s?flexidtype=2&flexid=%s&cmd=%s",
-		os.Getenv("PORT"), url.QueryEscape(phone), url.QueryEscape(req))
+		os.Getenv("ABOT_PORT"), url.QueryEscape(phone), url.QueryEscape(req))
 	c, b := request("POST", u, nil)
 	if c != http.StatusOK {
 		t.Fatal("expected", http.StatusOK, "got", c, b)
@@ -62,11 +62,11 @@ func TestServer(t *testing.T) {
 }
 
 func request(method, path string, data []byte) (int, string) {
-	r, err := http.NewRequest(method, path, bytes.NewBuffer(data))
+	req, err := http.NewRequest(method, path, bytes.NewBuffer(data))
 	if err != nil {
 		return 0, "err completing request: " + err.Error()
 	}
 	w := httptest.NewRecorder()
-	e.ServeHTTP(w, r)
+	r.ServeHTTP(w, req)
 	return w.Code, string(w.Body.Bytes())
 }

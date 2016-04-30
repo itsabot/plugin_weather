@@ -1,4 +1,5 @@
 {
 	"Name": "Weather",
+	"Maintainer": "Evan Tann <evan@itsabot.org>",
 	"Icon": "https://cdn.rawgit.com/itsabot/plugin_weather/master/assets/images/icon_weather.svg"
 }

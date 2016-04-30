@@ -2,7 +2,6 @@ package weather
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"math/rand"
@@ -62,19 +61,32 @@ func Run(in *dt.Msg) (string, error) {
 }
 
 func FollowUp(in *dt.Msg) (string, error) {
-	return p.Vocab.HandleKeywords(in), nil
+	resp := p.Vocab.HandleKeywords(in)
+	if len(resp) == 0 {
+		sm := buildStateMachine(in)
+		resp = sm.Next(in)
+	}
+	return resp, nil
 }
 
 func kwGetTemp(in *dt.Msg) (resp string) {
 	city, err := getCity(in)
+	if err == language.ErrNotFound {
+		return ""
+	}
 	if err != nil {
 		return er(err)
 	}
+	sm := buildStateMachine(in)
+	sm.SetMemory(in, "city", city)
 	return getWeather(city)
 }
 
 func kwGetRaining(in *dt.Msg) (resp string) {
 	city, err := getCity(in)
+	if err == language.ErrNotFound {
+		return ""
+	}
 	if err != nil {
 		return er(err)
 	}
@@ -90,26 +102,25 @@ func kwGetRaining(in *dt.Msg) (resp string) {
 
 func getCity(in *dt.Msg) (*dt.City, error) {
 	cities, err := language.ExtractCities(p.DB, in)
-	if err != nil {
+	if err != nil && err != language.ErrNotFound {
 		p.Log.Debug("couldn't extract cities")
 		return nil, err
 	}
-	city := &dt.City{}
-	sm := buildStateMachine(in)
 	if len(cities) >= 1 {
-		city = &cities[0]
-	} else if sm.HasMemory(in, "city") {
+		return &cities[0], nil
+	}
+	sm := buildStateMachine(in)
+	if sm.HasMemory(in, "city") {
 		mem := sm.GetMemory(in, "city")
 		p.Log.Debug(mem)
+		city := &dt.City{}
 		if err := json.Unmarshal(mem.Val, city); err != nil {
-			p.Log.Debug("couldn't unmarshal mem into city", err)
+			p.Log.Info("couldn't unmarshal mem into city.", err)
 			return nil, err
 		}
+		return city, nil
 	}
-	if city == nil {
-		return nil, errors.New("no cities found")
-	}
-	return city, nil
+	return nil, language.ErrNotFound
 }
 
 func getWeather(city *dt.City) string {
@@ -142,7 +153,32 @@ func getWeather(city *dt.City) string {
 
 func buildStateMachine(in *dt.Msg) *dt.StateMachine {
 	sm := dt.NewStateMachine(p)
-	sm.SetStates([]dt.State{})
+	sm.SetStates([]dt.State{
+		dt.State{
+			OnEntry: func(in *dt.Msg) string {
+				return "What city are you in?"
+			},
+			OnInput: func(in *dt.Msg) {
+				cities, _ := language.ExtractCities(p.DB, in)
+				if len(cities) > 0 {
+					sm.SetMemory(in, "city", cities[0])
+				}
+			},
+			Complete: func(in *dt.Msg) (bool, string) {
+				return sm.HasMemory(in, "city"), ""
+			},
+			SkipIfComplete: true,
+		},
+		dt.State{
+			OnEntry: func(in *dt.Msg) string {
+				return kwGetTemp(in)
+			},
+			OnInput: func(in *dt.Msg) {},
+			Complete: func(in *dt.Msg) (bool, string) {
+				return true, ""
+			},
+		},
+	})
 	sm.LoadState(in)
 	return sm
 }
