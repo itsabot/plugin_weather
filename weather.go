@@ -27,7 +27,7 @@ var p *dt.Plugin
 func init() {
 	rand.Seed(time.Now().UnixNano())
 	trigger := &nlp.StructuredInput{
-		Commands: []string{"what", "show", "tell", "is"},
+		Commands: []string{"what", "show", "tell", "is", "how"},
 		Objects: []string{"weather", "temperature", "temp", "outside",
 			"raining"},
 	}
@@ -41,7 +41,7 @@ func init() {
 		dt.VocabHandler{
 			Fn: kwGetTemp,
 			Trigger: &nlp.StructuredInput{
-				Commands: []string{"what", "show", "tell"},
+				Commands: []string{"what", "show", "tell", "how"},
 				Objects: []string{"weather", "temperature",
 					"temp", "outside"},
 			},
