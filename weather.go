@@ -57,6 +57,8 @@ func init() {
 }
 
 func Run(in *dt.Msg) (string, error) {
+	sm := buildStateMachine(in)
+	sm.Reset(in)
 	return FollowUp(in)
 }
 
@@ -156,7 +158,16 @@ func buildStateMachine(in *dt.Msg) *dt.StateMachine {
 	sm.SetStates([]dt.State{
 		dt.State{
 			OnEntry: func(in *dt.Msg) string {
-				return "What city are you in?"
+				if !sm.HasMemory(in, "city") {
+					return "What city are you in?"
+				}
+				mem := sm.GetMemory(in, "city")
+				p.Log.Debug(mem)
+				city := &dt.City{}
+				if err := json.Unmarshal(mem.Val, city); err != nil {
+					return er(err)
+				}
+				return fmt.Sprintf("Are you still in %s?", city.Name)
 			},
 			OnInput: func(in *dt.Msg) {
 				cities, _ := language.ExtractCities(p.DB, in)
@@ -167,7 +178,6 @@ func buildStateMachine(in *dt.Msg) *dt.StateMachine {
 			Complete: func(in *dt.Msg) (bool, string) {
 				return sm.HasMemory(in, "city"), ""
 			},
-			SkipIfComplete: true,
 		},
 		dt.State{
 			OnEntry: func(in *dt.Msg) string {
