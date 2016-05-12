@@ -48,7 +48,7 @@ func init() {
 			OnInput: func(in *dt.Msg) {
 				cities, _ := language.ExtractCities(p.DB, in)
 				if len(cities) > 0 {
-					p.SetMemory(in, "city", cities[0])
+					p.SetMemory(in, "city", cities[len(cities)-1])
 				}
 			},
 			Complete: func(in *dt.Msg) (bool, string) {
@@ -110,7 +110,7 @@ func getCity(in *dt.Msg) (*dt.City, error) {
 		return nil, err
 	}
 	if len(cities) >= 1 {
-		return &cities[0], nil
+		return &cities[len(cities)-1], nil
 	}
 	if p.HasMemory(in, "city") {
 		mem := p.GetMemory(in, "city")
