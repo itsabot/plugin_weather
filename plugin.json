@@ -3,5 +3,5 @@
 	"Maintainer": "Evan Tann <evan@itsabot.org>",
 	"AbotVersion": 0.2,
 	"Description": "Get weather reports for cities.",
-	"Icon": "https://cdn.rawgit.com/itsabot/plugin_weather/master/assets/images/icon_weather.svg"
+	"Icon": "https://cdn.rawgit.com/itsabot/plugin_weather/master/icon.svg"
 }

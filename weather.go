@@ -10,7 +10,6 @@ import (
 
 	"github.com/itsabot/abot/shared/datatypes"
 	"github.com/itsabot/abot/shared/language"
-	"github.com/itsabot/abot/shared/nlp"
 	"github.com/itsabot/abot/shared/plugin"
 )
 
@@ -25,7 +24,7 @@ func init() {
 	plugin.SetKeywords(p,
 		dt.KeywordHandler{
 			Fn: kwGetTemp,
-			Trigger: &nlp.StructuredInput{
+			Trigger: &dt.StructuredInput{
 				Commands: []string{"what", "show", "tell",
 					"how"},
 				Objects: []string{"weather", "temperature",
@@ -34,7 +33,7 @@ func init() {
 		},
 		dt.KeywordHandler{
 			Fn: kwGetRaining,
-			Trigger: &nlp.StructuredInput{
+			Trigger: &dt.StructuredInput{
 				Commands: []string{"tell", "is"},
 				Objects:  []string{"rain"},
 			},
