@@ -1,7 +1,11 @@
 {
 	"Name": "Weather",
 	"Maintainer": "Evan Tann <evan@itsabot.org>",
-	"AbotVersion": 0.2,
 	"Description": "Get weather reports for cities.",
-	"Icon": "https://cdn.rawgit.com/itsabot/plugin_weather/master/icon.svg"
+	"Icon": "https://cdn.rawgit.com/itsabot/plugin_weather/master/icon.svg",
+	"Usage": [
+		"What's the weather in NYC?",
+		"Is it hot outside?",
+		"How's the weather?"
+	]
 }
